@@ -10,13 +10,18 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.StrictMode
 import android.provider.Settings
 import android.util.Log
+import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.PopupWindow
 import android.widget.RelativeLayout
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -38,6 +43,7 @@ import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
 import kotlinx.android.synthetic.main.activity_main.*
+import org.apache.commons.io.FileUtils
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -83,6 +89,9 @@ class MainActivity : AppCompatActivity() {
         mRevealAnimation = RevealAnimation(rootLayout, intent, this)
 
 
+        btn_save.isEnabled = false
+        btn_share.isEnabled = false
+
 
         file_loc = File(
             "" +
@@ -90,11 +99,24 @@ class MainActivity : AppCompatActivity() {
                     + "Inspire"
         );
 
+        //FileUtils.deleteDirectory(file_loc)
+
+
         if (!file_loc.exists()) {
             file_loc.mkdir()
-        }   
+        }else{
+
+            var files = file_loc.listFiles()
+            for(i in 0..files.lastIndex){
+                files.get(i).delete()
+            }
+
+        }
 
         dirPath = file_loc.absolutePath
+
+
+
 
 
         rv_quote.setHasFixedSize(true)
@@ -145,11 +167,15 @@ class MainActivity : AppCompatActivity() {
 
                 if (response.isSuccessful) {
 
+
+                    btn_save.isEnabled = true
+                    btn_share.isEnabled = true
+
                     //Log.d("RESSSSSSS", response.body().toString())
 
                     val data = response.body()
                     val list = data?.results as ArrayList
-                    list.shuffle()
+                    //list.shuffle()
 
                     adapter = QuoteAdapter(this@MainActivity, list, this)
                     rv_quote.adapter = adapter
@@ -165,12 +191,41 @@ class MainActivity : AppCompatActivity() {
 
             override fun onFailure(call: Call<QuoteModel?>, t: Throwable) {
                 Toast.makeText(this@MainActivity, t.message, Toast.LENGTH_SHORT).show()
+
+                btn_save.isEnabled = false
+                btn_share.isEnabled = false
             }
 
             override fun onItemClick(item: ResultsItem) {
 
             }
         })
+    }
+
+    fun popup_image(img: Bitmap) {
+
+        val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
+        val customViewCall = inflater.inflate(R.layout.popup_screen, null)
+        val mPopupWindow = PopupWindow(customViewCall, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+
+        customViewCall.close.setOnClickListener {
+
+            val editor = preferences.edit()
+            editor.putString("popup_date",date)
+            editor.apply()
+
+            mPopupWindow.dismiss()
+        }
+        Picasso.with(context).load(img).into( customViewCall.new_img)
+
+
+        if (Build.VERSION.SDK_INT >= 21) {
+            mPopupWindow.elevation = 5.0f
+        }
+
+        mPopupWindow.isFocusable = true
+        mPopupWindow.animationStyle = R.style.popupAnimation
+        mPopupWindow.showAtLocation(activity_frame_layout, Gravity.CENTER, 0, 0)
     }
 
     private fun requestReadPermissions() {
@@ -221,9 +276,6 @@ class MainActivity : AppCompatActivity() {
             .check()
     }
 
-
-
-
     private fun takeSS(v: View) {
         val now = Date()
         android.text.format.DateFormat.format("yyyy-MM-dd_hh:mm:ss", now)
@@ -264,54 +316,6 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    fun takeScreenshotOfView(view: View): Bitmap {
-        val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        val bgDrawable = view.background
-        if (bgDrawable != null) {
-            bgDrawable.draw(canvas)
-        } else {
-            canvas.drawColor(Color.WHITE)
-        }
-        view.draw(canvas)
-        return bitmap
-    }
-
-    private fun bitmapToFile(bitmap: Bitmap): Uri {
-        // Get the context wrapper
-        val now = Date()
-        android.text.format.DateFormat.format("yyyy-MM-dd_hh:mm:ss", now)
-        val wrapper = ContextWrapper(applicationContext)
-
-        // Initialize a new file instance to save bitmap object
-        var file = wrapper.getDir("Images", Context.MODE_PRIVATE)
-        file = File(file, "${now}.jpg")
-
-        try {
-            // Compress the bitmap and save in jpg format
-            val stream: OutputStream = FileOutputStream(file)
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
-            stream.flush()
-            stream.close()
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
-
-        // Return the saved bitmap uri
-        return Uri.parse(file.absolutePath)
-    }
-
-    private fun getScreenShot(view: View): Bitmap {
-        val returnedBitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(returnedBitmap)
-        val bgDrawable = view.background
-        if (bgDrawable != null) bgDrawable.draw(canvas)
-        else canvas.drawColor(Color.WHITE)
-        view.draw(canvas)
-        return returnedBitmap
-    }
-
-
     private fun share(sharePath: String) {
 
         val file = File(sharePath)
@@ -320,15 +324,7 @@ class MainActivity : AppCompatActivity() {
             type = "image/*"
             putExtra(Intent.EXTRA_STREAM, uri)
         }
-//        startActivity(intent)
         startActivity(Intent.createChooser(intent, "Share Quote.."))
-//        val shareIntent: Intent = Intent().apply {
-//            action = Intent.ACTION_SEND
-//            putExtra(Intent.EXTRA_STREAM, file)
-//            type = "image/*"
-//        }
-//        startActivity(Intent.createChooser(shareIntent, "Share Quote.."))
-
     }
 
 
