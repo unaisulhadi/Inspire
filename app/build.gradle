@@ -44,7 +44,7 @@ dependencies {
     implementation 'com.squareup.okhttp3:logging-interceptor:4.2.1'
 
     implementation 'com.karumi:dexter:5.0.0'
-    implementation 'com.airbnb.android:lottie:3.0.0-beta1'
+    implementation 'com.airbnb.android:lottie:3.0.0'
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.2.0'

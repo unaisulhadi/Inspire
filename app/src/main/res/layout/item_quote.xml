@@ -2,7 +2,6 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:layout_width="match_parent"
-    android:padding="@dimen/_12sdp"
     android:id="@+id/quote_bg"
     android:layout_height="match_parent">
 
@@ -11,6 +10,34 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/_50sdp"
+            android:layout_marginTop="@dimen/_18sdp"
+            android:gravity="center">
+
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="@dimen/_1sdp"
+                android:layout_weight="1"/>
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="@dimen/_50sdp"
+                android:layout_weight="2"
+                android:fontFamily="@font/ps_regular"
+                android:gravity="center"
+                android:text="@string/inspire_quotes"
+                android:textColor="@color/md_white_1000"
+                android:textSize="@dimen/_20sdp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="@dimen/_1sdp"
+                android:layout_weight="1" />
+
+        </LinearLayout>
 
     </LinearLayout>
 
@@ -19,7 +46,8 @@
         android:layout_height="0dp"
         android:orientation="vertical"
         android:gravity="center_vertical"
-        android:layout_weight="2">
+        android:padding="@dimen/_10sdp"
+        android:layout_weight="3">
 
 
         <ImageView
@@ -55,7 +83,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1.5">
 
 
     </LinearLayout>
