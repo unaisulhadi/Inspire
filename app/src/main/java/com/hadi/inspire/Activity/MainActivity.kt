@@ -2,25 +2,20 @@ package com.hadi.inspire.Activity
 
 import android.Manifest
 import android.content.Context
-import android.content.ContextWrapper
 import android.content.DialogInterface
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Canvas
-import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.StrictMode
 import android.provider.Settings
-import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.LinearLayout
 import android.widget.PopupWindow
 import android.widget.RelativeLayout
 import android.widget.Toast
@@ -29,7 +24,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
-import com.hadi.inspire.Adapter.LinePagerIndicatorDecoration
 import com.hadi.inspire.Adapter.QuoteAdapter
 import com.hadi.inspire.Model.QuoteModel
 import com.hadi.inspire.Model.ResultsItem
@@ -43,14 +37,12 @@ import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
 import kotlinx.android.synthetic.main.activity_main.*
-import org.apache.commons.io.FileUtils
+import kotlinx.android.synthetic.main.popup_screen.view.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.io.File
 import java.io.FileOutputStream
-import java.io.IOException
-import java.io.OutputStream
 import java.util.*
 
 
@@ -64,8 +56,9 @@ class MainActivity : AppCompatActivity() {
     var rv_pos = 0;
     private var sharePath = "no"
     internal var dirPath = ""
+    internal var saveDir=""
     lateinit var file_loc: File
-
+    lateinit var file_saved:File
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -99,22 +92,32 @@ class MainActivity : AppCompatActivity() {
                     + "Inspire"
         );
 
+
+
         //FileUtils.deleteDirectory(file_loc)
 
 
         if (!file_loc.exists()) {
             file_loc.mkdir()
-        }else{
+        } else {
 
+//            file_saved =  File(
+//                "" +
+//                        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/"
+//                        + "Inspire/InspireCollections"
+//            );
+//            if (!file_saved.exists()) {
+//                file_saved.mkdir()
+//            }
             var files = file_loc.listFiles()
-            for(i in 0..files.lastIndex){
+            for (i in 0..files.lastIndex) {
                 files.get(i).delete()
             }
 
         }
 
         dirPath = file_loc.absolutePath
-
+//        saveDir = file_saved.absolutePath
 
 
 
@@ -202,21 +205,56 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    fun popup_image(img: Bitmap) {
+    fun popup_image(img: Bitmap, sharepath: String) {
+        val now = Date()
+        android.text.format.DateFormat.format("yyyy-MM-dd_hh:mm:ss", now)
+        val path = saveDir + "/" + now + ".jpeg"
 
         val inflater = getSystemService(Context.LAYOUT_INFLATER_SERVICE) as LayoutInflater
-        val customViewCall = inflater.inflate(R.layout.popup_screen, null)
-        val mPopupWindow = PopupWindow(customViewCall, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        val image_popup = inflater.inflate(R.layout.popup_screen, null)
+        val mPopupWindow = PopupWindow(
+            image_popup,
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
+        image_popup.img_alert.setImageBitmap(img)
 
-        customViewCall.close.setOnClickListener {
 
-            val editor = preferences.edit()
-            editor.putString("popup_date",date)
-            editor.apply()
-
+        image_popup.close.setOnClickListener {
             mPopupWindow.dismiss()
         }
-        Picasso.with(context).load(img).into( customViewCall.new_img)
+
+        image_popup.pop_bg.setOnClickListener {
+            mPopupWindow.dismiss()
+        }
+
+        image_popup.wa.setOnClickListener {
+            val file = File(sharePath)
+            val uri = Uri.fromFile(file)
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "image/*"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                `package` = "com.whatsapp"
+            }
+            startActivity(Intent.createChooser(intent, "Share Quote.."))
+        }
+
+        image_popup.insta.setOnClickListener {
+            val file = File(sharePath)
+            val uri = Uri.fromFile(file)
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "image/*"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                `package` = "com.instagram.android"
+            }
+            startActivity(Intent.createChooser(intent, "Share Quote.."))
+        }
+
+        image_popup.dwnld.setOnClickListener {
+
+            share(sharePath)
+
+        }
 
 
         if (Build.VERSION.SDK_INT >= 21) {
@@ -225,7 +263,7 @@ class MainActivity : AppCompatActivity() {
 
         mPopupWindow.isFocusable = true
         mPopupWindow.animationStyle = R.style.popupAnimation
-        mPopupWindow.showAtLocation(activity_frame_layout, Gravity.CENTER, 0, 0)
+        mPopupWindow.showAtLocation(bg_, Gravity.CENTER, 0, 0)
     }
 
     private fun requestReadPermissions() {
@@ -239,27 +277,17 @@ class MainActivity : AppCompatActivity() {
                 override fun onPermissionsChecked(report: MultiplePermissionsReport) { // check if all permissions are granted
                     if (report.areAllPermissionsGranted()) {
 
-//                        takeSS(bg_)
-                        //var file_ =
-                            //takeScreenshotOfView(rv_quote.findViewHolderForAdapterPosition(rv_pos)!!.itemView)
                         takeSS(rv_quote.findViewHolderForAdapterPosition(rv_pos)!!.itemView)
-//                        var file  = bitmapToFile(file_)
-//
-//                        Log.d("URI__",file.toString())
-//
-//                        img_item.setImageBitmap(file_)
-//
-//                        val shareIntent: Intent = Intent().apply {
-//                            action = Intent.ACTION_SEND
-//                            putExtra(Intent.EXTRA_STREAM, file)
-//                            type = "image/*"
-//                        }
-//                        startActivity(Intent.createChooser(shareIntent, "Share Quote.."))
+
                     }
                     // check for permanent denial of any permission
                     if (report.isAnyPermissionPermanentlyDenied) { // show alert dialog navigating to Settings
                         //showSettingsDialog()
-                        Toast.makeText(this@MainActivity, "Storage Permission Required.!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Storage Permission Required.!",
+                            Toast.LENGTH_SHORT
+                        ).show();
                     }
                 }
 
@@ -297,6 +325,7 @@ class MainActivity : AppCompatActivity() {
 
 
 
+
             outputStream.flush()
             outputStream.close()
 
@@ -306,8 +335,8 @@ class MainActivity : AppCompatActivity() {
             val ssbitmap = BitmapFactory.decodeFile(imageFile.absolutePath)
             img_item!!.setImageBitmap(ssbitmap)
             sharePath = filePath;
-            share(sharePath)
-
+            //share(sharePath)
+            popup_image(bitmap,sharePath)
         } catch (e: Throwable) {
             // Several error may come out with file handling or DOM
             e.printStackTrace()
