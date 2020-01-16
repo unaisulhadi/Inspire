@@ -1,6 +1,7 @@
 package com.hadi.inspire.Activity
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
@@ -12,6 +13,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.os.StrictMode
 import android.provider.Settings
+import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -25,6 +27,9 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.hadi.inspire.Adapter.QuoteAdapter
+import com.hadi.inspire.Components.AppDatabase
+import com.hadi.inspire.Components.DatabaseClient
+import com.hadi.inspire.Components.Quote
 import com.hadi.inspire.Model.QuoteModel
 import com.hadi.inspire.Model.ResultsItem
 import com.hadi.inspire.Network.RetrofitClient
@@ -36,6 +41,11 @@ import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
+import io.reactivex.Completable
+import io.reactivex.Scheduler
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.functions.Consumer
+import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.popup_screen.view.*
 import retrofit2.Call
@@ -44,7 +54,6 @@ import retrofit2.Response
 import java.io.File
 import java.io.FileOutputStream
 import java.util.*
-
 
 class MainActivity : AppCompatActivity() {
 
@@ -56,10 +65,10 @@ class MainActivity : AppCompatActivity() {
     var rv_pos = 0;
     private var sharePath = "no"
     internal var dirPath = ""
-    internal var saveDir=""
+    internal var saveDir = ""
     lateinit var file_loc: File
-    lateinit var file_saved:File
-
+    lateinit var file_saved: File
+    lateinit var roomDb: AppDatabase
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,6 +76,8 @@ class MainActivity : AppCompatActivity() {
         val builder = StrictMode.VmPolicy.Builder();
         StrictMode.setVmPolicy(builder.build());
         builder.detectFileUriExposure()
+
+        roomDb = DatabaseClient.getInstance(this).appDatabase
 
         this.window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                 or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
@@ -85,40 +96,7 @@ class MainActivity : AppCompatActivity() {
         btn_save.isEnabled = false
         btn_share.isEnabled = false
 
-
-        file_loc = File(
-            "" +
-                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/"
-                    + "Inspire"
-        );
-
-
-
-        //FileUtils.deleteDirectory(file_loc)
-
-
-        if (!file_loc.exists()) {
-            file_loc.mkdir()
-        } else {
-
-//            file_saved =  File(
-//                "" +
-//                        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/"
-//                        + "Inspire/InspireCollections"
-//            );
-//            if (!file_saved.exists()) {
-//                file_saved.mkdir()
-//            }
-            var files = file_loc.listFiles()
-            for (i in 0..files.lastIndex) {
-                files.get(i).delete()
-            }
-
-        }
-
-        dirPath = file_loc.absolutePath
-//        saveDir = file_saved.absolutePath
-
+        requestReadPermissions()
 
 
 
@@ -127,21 +105,36 @@ class MainActivity : AppCompatActivity() {
         val snapHelper = PagerSnapHelper()
         snapHelper.attachToRecyclerView(rv_quote)
 
-        //rv_quote.addItemDecoration(LinePagerIndicatorDecoration())
-
-        //progress.progress = 0F
-        //progress.playAnimation()
-
         getQuotes()
+        getSaved()
 
         ViewPressEffectHelper.attach(btn_save)
         btn_save.setOnClickListener {
-            Toast.makeText(this, "Save", Toast.LENGTH_SHORT).show();
+
+            if (list.isNotEmpty()) {
+                val quote = Quote()
+                quote.author = list[rv_pos].quoteAuthor
+                quote.quote = list[rv_pos].quoteText
+
+                //roomDb.quoteDao().insert(quote)
+
+                Completable.fromAction {
+                    roomDb.quoteDao().insert(quote)
+                }.subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe {
+                        Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show();
+                    }
+            }else{
+                Toast.makeText(this, "List Empty", Toast.LENGTH_SHORT).show();
+            }
         }
 
         ViewPressEffectHelper.attach(btn_share)
         btn_share.setOnClickListener {
-            requestReadPermissions()
+
+
+            takeSS(rv_quote.findViewHolderForAdapterPosition(rv_pos)!!.itemView)
         }
 
         rv_quote.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -156,9 +149,28 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
+    @SuppressLint("CheckResult")
+    private fun getSaved() {
+        roomDb.quoteDao().all.subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(object : Consumer<MutableList<Quote>> {
+                override fun accept(t: MutableList<Quote>) {
+                    showSavedQuotes(t)
+                }
+            })
+
+    }
+
+    private fun showSavedQuotes(list: MutableList<Quote>) {
+        for(i in 0..list.lastIndex) {
+            Log.d("SAVED_Q", list.get(i).quote)
+        }
+    }
+
 
     private fun getQuotes() {
-//        progress.visibility = View.VISIBLE
+        lottie.playAnimation()
+
         val apiInterface = RetrofitClient.getInstance(this)
         val call = apiInterface.quote.getQuote
 
@@ -167,6 +179,9 @@ class MainActivity : AppCompatActivity() {
             override fun onResponse(call: Call<QuoteModel?>, response: Response<QuoteModel?>) {
 
 //                progress.visibility = View.GONE
+
+                lottie.cancelAnimation()
+                lottie.visibility = View.GONE
 
                 if (response.isSuccessful) {
 
@@ -177,7 +192,7 @@ class MainActivity : AppCompatActivity() {
                     //Log.d("RESSSSSSS", response.body().toString())
 
                     val data = response.body()
-                    val list = data?.results as ArrayList
+                    list = data?.results as ArrayList
                     //list.shuffle()
 
                     adapter = QuoteAdapter(this@MainActivity, list, this)
@@ -194,7 +209,9 @@ class MainActivity : AppCompatActivity() {
 
             override fun onFailure(call: Call<QuoteModel?>, t: Throwable) {
                 Toast.makeText(this@MainActivity, t.message, Toast.LENGTH_SHORT).show()
+                lottie.cancelAnimation()
 
+                lottie.visibility = View.GONE
                 btn_save.isEnabled = false
                 btn_share.isEnabled = false
             }
@@ -277,7 +294,32 @@ class MainActivity : AppCompatActivity() {
                 override fun onPermissionsChecked(report: MultiplePermissionsReport) { // check if all permissions are granted
                     if (report.areAllPermissionsGranted()) {
 
-                        takeSS(rv_quote.findViewHolderForAdapterPosition(rv_pos)!!.itemView)
+                        file_loc = File(
+                            "" +
+                                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/"
+                                    + "Inspire"
+                        );
+
+
+                        //FileUtils.deleteDirectory(file_loc)
+
+
+                        if (!file_loc.exists()) {
+                            file_loc.mkdir()
+                        } else {
+
+                            var files = file_loc.listFiles()
+                            if(files.isNotEmpty()) {
+                                for (i in 0..files.lastIndex) {
+                                    files.get(i).delete()
+                                }
+                            }
+
+                        }
+
+                        dirPath = file_loc.absolutePath
+
+
 
                     }
                     // check for permanent denial of any permission
@@ -336,7 +378,7 @@ class MainActivity : AppCompatActivity() {
             img_item!!.setImageBitmap(ssbitmap)
             sharePath = filePath;
             //share(sharePath)
-            popup_image(bitmap,sharePath)
+            popup_image(bitmap, sharePath)
         } catch (e: Throwable) {
             // Several error may come out with file handling or DOM
             e.printStackTrace()

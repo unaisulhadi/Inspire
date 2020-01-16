@@ -83,7 +83,14 @@
             android:layout_weight="3"
             android:gravity="center">
 
-<!--       RecyclerView Item contains in this Space      -->
+
+            <com.airbnb.lottie.LottieAnimationView
+                android:id="@+id/lottie"
+                android:layout_width="@dimen/_100sdp"
+                android:layout_height="@dimen/_100sdp"
+                app:lottie_autoPlay="true"
+                app:lottie_loop="true"
+                app:lottie_fileName="loading_loop.json"/>
 
 
         </LinearLayout>

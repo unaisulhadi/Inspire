@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="@dimen/_16sdp"
+    tools:context=".Activity.SavedActivity">
+
+
+    <ImageView
+        android:id="@+id/back_saved"
+        android:layout_width="@dimen/_30sdp"
+        android:layout_height="@dimen/_30sdp"
+        android:layout_marginTop="@dimen/_10sdp"
+        android:padding="@dimen/_5sdp"
+        android:src="@drawable/ic_back_"
+        android:transitionName="backTrans"
+        android:tint="@color/md_black_1000" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_saved"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/back_saved"
+        android:layout_marginTop="@dimen/_5sdp"/>
+
+
+</RelativeLayout>

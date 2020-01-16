@@ -24,6 +24,7 @@
                 android:layout_height="@dimen/_30sdp"
                 android:layout_marginTop="@dimen/_10sdp"
                 android:padding="@dimen/_2sdp"
+                android:transitionName="backTrans"
                 android:src="@drawable/ic_bookmark_white"
                 android:layout_alignParentEnd="true"/>
 
