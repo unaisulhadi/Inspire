@@ -1,5 +1,7 @@
 package com.hadi.inspire.Model;
 
+import androidx.annotation.NonNull;
+
 import com.google.gson.annotations.SerializedName;
 
 public class ResultsItem{
@@ -43,13 +45,20 @@ public class ResultsItem{
 		return id;
 	}
 
+//	@Override
+// 	public String toString(){
+//		return
+//			"ResultsItem{" +
+//			"quoteText = '" + quoteText + '\'' +
+//			",quoteAuthor = '" + quoteAuthor + '\'' +
+//			",_id = '" + id + '\'' +
+//			"}";
+//		}
+
+
+	@NonNull
 	@Override
- 	public String toString(){
-		return 
-			"ResultsItem{" + 
-			"quoteText = '" + quoteText + '\'' + 
-			",quoteAuthor = '" + quoteAuthor + '\'' + 
-			",_id = '" + id + '\'' + 
-			"}";
-		}
+	public String toString() {
+		return quoteText+" "+quoteAuthor;
+	}
 }

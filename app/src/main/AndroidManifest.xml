@@ -15,8 +15,10 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:ignore="AllowBackup,GoogleAppIndexingWarning">
-        <activity android:name=".Activity.SavedActivity"
-            android:theme="@style/AppTheme"/>
+        <activity android:name=".Activity.SavedViewActivity"></activity>
+        <activity
+            android:name=".Activity.SavedActivity"
+            android:theme="@style/AppTheme" />
         <activity
             android:name=".Activity.SplashActivity"
             android:theme="@style/AppTheme">

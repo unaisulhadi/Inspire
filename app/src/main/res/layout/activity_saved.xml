@@ -4,7 +4,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="@dimen/_16sdp"
+    android:paddingTop="@dimen/_16sdp"
+    android:paddingRight="@dimen/_12sdp"
+    android:paddingLeft="@dimen/_12sdp"
     tools:context=".Activity.SavedActivity">
 
 

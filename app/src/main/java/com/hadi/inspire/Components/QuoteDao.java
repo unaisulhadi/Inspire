@@ -3,6 +3,7 @@ package com.hadi.inspire.Components;
 import androidx.room.Dao;
 import androidx.room.Delete;
 import androidx.room.Insert;
+import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Update;
 
@@ -16,7 +17,7 @@ public interface QuoteDao {
     @Query("SELECT * FROM quote")
     Flowable<List<Quote>> getAll();
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert(Quote quote);
 
     @Delete

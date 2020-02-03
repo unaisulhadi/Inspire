@@ -4,6 +4,7 @@ import android.app.ActivityOptions
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.util.Pair
 import android.view.View
 import android.view.animation.AnimationUtils
@@ -12,18 +13,31 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.app.ActivityOptionsCompat
 import androidx.core.view.ViewCompat
+import com.hadi.inspire.Components.AppDatabase
+import com.hadi.inspire.Components.DatabaseClient
 import com.hadi.inspire.R
 import com.hadi.inspire.Utils.RevealAnimation
 import com.hadi.inspire.Utils.ViewPressEffectHelper
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_splash.*
 
 class SplashActivity : AppCompatActivity() {
+
+
+    lateinit var roomDb: AppDatabase
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_splash)
 
+
+        roomDb = DatabaseClient.getInstance(this).appDatabase
         var fade = AnimationUtils.loadAnimation(this,R.anim.fade_in)
+
+
+        getSaved()
+
 
         this.window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                 or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
@@ -58,7 +72,6 @@ class SplashActivity : AppCompatActivity() {
                 startActivity(intent)
             }
 
-
         }
 
 
@@ -83,6 +96,20 @@ class SplashActivity : AppCompatActivity() {
         //to prevent strange behaviours override the pending transitions
         //to prevent strange behaviours override the pending transitions
         overridePendingTransition(0, 0)
+    }
+
+    private fun getSaved() {
+//        val compositeDisposable = CompositeDisposable()
+//        val disposable =
+        roomDb.quoteDao().all.subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { t ->
+                Log.d("SAVED_LI", "DATA:$t ");
+            }
+//        compositeDisposable.add(disposable)
+//        compositeDisposable.dispose()
+
+
     }
 
 }

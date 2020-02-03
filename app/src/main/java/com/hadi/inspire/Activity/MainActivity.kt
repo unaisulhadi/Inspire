@@ -26,6 +26,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
 import com.hadi.inspire.Adapter.QuoteAdapter
 import com.hadi.inspire.Components.AppDatabase
 import com.hadi.inspire.Components.DatabaseClient
@@ -42,9 +43,7 @@ import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
 import io.reactivex.Completable
-import io.reactivex.Scheduler
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.functions.Consumer
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.popup_screen.view.*
@@ -55,9 +54,11 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.*
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), QuoteAdapter.OnItemClickListener {
 
     var list = arrayListOf<ResultsItem>()
+    var quote_list = mutableListOf<Quote>()
+    var saved_list = mutableListOf<Quote>()
     lateinit var background: View
     lateinit var mRevealAnimation: RevealAnimation
     val colorList = arrayListOf<Int>()
@@ -73,6 +74,120 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        init()
+
+
+
+
+
+        ViewPressEffectHelper.attach(btn_save)
+        btn_save.setOnClickListener {
+
+
+
+            var id_list = arrayListOf<String>()
+            for(i in 0..saved_list.lastIndex){
+                id_list.add(saved_list[i].id)
+            }
+
+
+            if(saved_list.isEmpty()){
+
+                val quote = Quote()
+
+                quote.id = list[rv_pos].id
+                quote.author = list[rv_pos].quoteAuthor
+                quote.quote = list[rv_pos].quoteText
+
+                Completable.fromAction {
+                    roomDb.quoteDao().insert(quote)
+                }.subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe {
+                        //Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show();
+                        btn_save.setImageResource(R.drawable.ic_heart_fill)
+                    }
+
+            }
+            else{
+
+                val quote = Quote()
+
+                quote.id = list[rv_pos].id
+                quote.author = list[rv_pos].quoteAuthor
+                quote.quote = list[rv_pos].quoteText
+                quote.position = rv_pos
+
+
+                for( i in 0..saved_list.lastIndex){
+
+                    if(saved_list[i].id == list[rv_pos].id){
+
+                        Completable.fromAction {
+                            roomDb.quoteDao().delete(saved_list.get(i))
+                        }.subscribeOn(Schedulers.io())
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribe {
+                                //Toast.makeText(this, "Removed", Toast.LENGTH_SHORT).show();
+                                btn_save.setImageResource(R.drawable.ic_heart)
+                            }
+
+                    }else{
+
+                        Completable.fromAction {
+                            roomDb.quoteDao().insert(quote)
+                        }.subscribeOn(Schedulers.io())
+                            .observeOn(AndroidSchedulers.mainThread())
+                            .subscribe {
+                                //Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show();
+                                btn_save.setImageResource(R.drawable.ic_heart_fill)
+                            }
+
+                    }
+
+                }
+
+            }
+
+
+        }
+
+        ViewPressEffectHelper.attach(btn_share)
+        btn_share.setOnClickListener {
+
+            //takeSS(rv_quote.findViewHolderForAdapterPosition(rv_pos)!!.itemView)
+            takeSS(vp)
+        }
+
+        //vp.orientation = ViewPager2.ORIENTATION_VERTICAL
+
+        vp.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+
+            override fun onPageSelected(position: Int) {
+                super.onPageSelected(position)
+
+                rv_pos = position;
+
+                var id_list = arrayListOf<String>()
+
+                for(i in 0..saved_list.lastIndex){
+                    id_list.add(saved_list[i].id)
+                }
+
+                if(id_list.contains(list[position].id)){
+                   // Toast.makeText(this@MainActivity,"TRUE",Toast.LENGTH_SHORT).show()
+                    btn_save.setImageResource(R.drawable.ic_heart_fill)
+                }else{
+                    //Toast.makeText(this@MainActivity,"FALSE",Toast.LENGTH_SHORT).show()
+                    btn_save.setImageResource(R.drawable.ic_heart)
+                }
+            }
+        })
+
+    }
+
+    fun init(){
         val builder = StrictMode.VmPolicy.Builder();
         StrictMode.setVmPolicy(builder.build());
         builder.detectFileUriExposure()
@@ -85,6 +200,7 @@ class MainActivity : AppCompatActivity() {
                 or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 or View.SYSTEM_UI_FLAG_FULLSCREEN
                 or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
+
         background = findViewById(R.id.bg_)
         val intent =
             this.intent //get the intent to receive the x and y coords, that you passed before
@@ -99,73 +215,46 @@ class MainActivity : AppCompatActivity() {
         requestReadPermissions()
 
 
-
-        rv_quote.setHasFixedSize(true)
-        rv_quote.layoutManager = LinearLayoutManager(this, RecyclerView.HORIZONTAL, false)
-        val snapHelper = PagerSnapHelper()
-        snapHelper.attachToRecyclerView(rv_quote)
-
-        getQuotes()
-        getSaved()
-
-        ViewPressEffectHelper.attach(btn_save)
-        btn_save.setOnClickListener {
-
-            if (list.isNotEmpty()) {
-                val quote = Quote()
-                quote.author = list[rv_pos].quoteAuthor
-                quote.quote = list[rv_pos].quoteText
-
-                //roomDb.quoteDao().insert(quote)
-
-                Completable.fromAction {
-                    roomDb.quoteDao().insert(quote)
-                }.subscribeOn(Schedulers.io())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe {
-                        Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show();
-                    }
-            }else{
-                Toast.makeText(this, "List Empty", Toast.LENGTH_SHORT).show();
-            }
-        }
-
-        ViewPressEffectHelper.attach(btn_share)
-        btn_share.setOnClickListener {
-
-
-            takeSS(rv_quote.findViewHolderForAdapterPosition(rv_pos)!!.itemView)
-        }
-
-        rv_quote.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                var offset = rv_quote.computeHorizontalScrollOffset()
-                var cellwidth = rv_quote.getChildAt(0).measuredWidth
-                if (offset % cellwidth == 0) {
-                    rv_pos = offset / cellwidth
-                }
-                //Toast.makeText(this@MainActivity, "$rv_pos", Toast.LENGTH_SHORT).show();
-            }
-        })
+//        if(getIntent()!=null){
+//            val quote = intent.getSerializableExtra("QUOTE") as Quote
+//
+//            val pos = quote.position
+//            val id = quote.id
+//            val auth = quote.author
+//            val text = quote.quote
+//            val isSelected = true
+//
+//            val res = ResultsItem(text,auth,id)
+//            var _list = arrayListOf<ResultsItem>()
+//            _list.add(res)
+//
+//            val adapter = QuoteAdapter(this,list,this)
+//            vp.adapter = adapter
+//
+//
+//
+//            val poss = intent.getIntExtra("QUOTE_POS",0)
+//            vp.currentItem = poss
+//
+//
+//        }else{
+            getSaved()
+            getQuotes()
+//        }
     }
 
     @SuppressLint("CheckResult")
     private fun getSaved() {
-        roomDb.quoteDao().all.subscribeOn(Schedulers.io())
+
+            roomDb.quoteDao().all.subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(object : Consumer<MutableList<Quote>> {
-                override fun accept(t: MutableList<Quote>) {
-                    showSavedQuotes(t)
-                }
-            })
+            .subscribe { t ->
+                Log.d("SAVED_LI", ":$t ");
+                saved_list = t
+            }
 
     }
 
-    private fun showSavedQuotes(list: MutableList<Quote>) {
-        for(i in 0..list.lastIndex) {
-            Log.d("SAVED_Q", list.get(i).quote)
-        }
-    }
 
 
     private fun getQuotes() {
@@ -196,7 +285,12 @@ class MainActivity : AppCompatActivity() {
                     //list.shuffle()
 
                     adapter = QuoteAdapter(this@MainActivity, list, this)
-                    rv_quote.adapter = adapter
+                    vp.adapter = adapter
+
+
+//                    for( i in 0..list.lastIndex){
+//                        quote_list.add(Quote(list.get(i).id,list[i].quoteText,list[i].quoteAuthor))
+//                    }
 
                 } else {
                     Toast.makeText(
@@ -375,7 +469,6 @@ class MainActivity : AppCompatActivity() {
             val filePath = imageFile.path
 
             val ssbitmap = BitmapFactory.decodeFile(imageFile.absolutePath)
-            img_item!!.setImageBitmap(ssbitmap)
             sharePath = filePath;
             //share(sharePath)
             popup_image(bitmap, sharePath)
@@ -427,5 +520,9 @@ class MainActivity : AppCompatActivity() {
         val uri = Uri.fromParts("package", packageName, null)
         intent.data = uri
         startActivityForResult(intent, 101)
+    }
+
+    override fun onItemClick(item: ResultsItem) {
+
     }
 }

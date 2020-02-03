@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_height="wrap_content"
+    android:layout_width="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    app:cardCornerRadius="@dimen/_5sdp"
+    android:elevation="@dimen/_5sdp">
+
+    <RelativeLayout
+        android:id="@+id/sv_bg"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:background="@color/md_blue_400"
+        android:transitionName="quoteBg"
+        android:paddingLeft="@dimen/_8sdp"
+        android:paddingRight="@dimen/_8sdp"
+        android:paddingTop="@dimen/_5sdp"
+        android:paddingBottom="@dimen/_5sdp"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:id="@+id/quote_saved"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/crimson_semibold"
+            android:text="Your quote goes here"
+            android:transitionName="quoteText"
+            android:textSize="@dimen/_15sdp"
+            android:textColor="@color/md_white_1000"/>
+
+        <TextView
+            android:id="@+id/author_saved"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="- Author"
+            android:transitionName="quoteAuthor"
+            android:textColor="@color/md_white_1000"
+            android:fontFamily="@font/ps_bold"
+            android:textSize="@dimen/_12sdp"
+            android:layout_marginTop="@dimen/_5sdp"
+            android:layout_below="@id/quote_saved"
+            android:layout_alignParentRight="true"/>
+
+
+    </RelativeLayout>
+
+</androidx.cardview.widget.CardView>
